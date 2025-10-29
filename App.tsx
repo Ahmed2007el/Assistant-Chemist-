@@ -4,40 +4,49 @@ import Section1 from './components/Section1';
 import Section2 from './components/Section2';
 import Section3 from './components/Section3';
 import Dashboard from './components/Dashboard';
-import { getGenAI } from './services/geminiClient';
+import { initializeGenAI } from './services/geminiClient';
 import Section4 from './components/Section4';
+import ApiKeyModal from './components/ApiKeyModal';
 
 export type SectionId = 'dashboard' | 'expert' | 'search' | 'troubleshoot' | 'locked';
 
+const API_KEY_STORAGE_KEY = 'google_ai_api_key';
+
 const App: React.FC = () => {
-    const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
+    const [apiKey, setApiKey] = useState<string | null>(null);
+    const [isKeyChecked, setIsKeyChecked] = useState(false);
     const [activeSection, setActiveSection] = useState<SectionId>('dashboard');
 
     useEffect(() => {
-        try {
-            // This will throw an error if process.env.API_KEY is not set.
-            getGenAI();
-            setIsApiKeyMissing(false);
-        } catch (error) {
-            console.error(error);
-            setIsApiKeyMissing(true);
+        const storedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+        if (storedApiKey) {
+            handleApiKeySubmit(storedApiKey);
+        } else if (process.env.API_KEY) {
+            // As a fallback, check for an environment variable.
+            handleApiKeySubmit(process.env.API_KEY);
         }
+        setIsKeyChecked(true);
     }, []);
 
+    const handleApiKeySubmit = (key: string) => {
+        try {
+            initializeGenAI(key);
+            setApiKey(key);
+            localStorage.setItem(API_KEY_STORAGE_KEY, key);
+        } catch (error) {
+            console.error("Failed to set API key:", error);
+            // This could happen if the key is invalid, but we'll let the user proceed
+            // and they will see errors on API calls.
+        }
+    };
+    
     const renderContent = () => {
-        if (isApiKeyMissing) {
-            return (
-                 <div className="fixed inset-0 bg-gray-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-800 border border-red-500/50 rounded-lg shadow-2xl p-6 sm:p-8 max-w-md w-full text-center">
-                        <h2 className="text-xl sm:text-2xl font-bold text-red-400 mb-4">خطأ في الإعداد</h2>
-                        <p className="text-gray-400">
-                            مفتاح API غير موجود. يرجى التأكد من تكوين متغير البيئة 
-                            <code className="bg-gray-700 text-cyan-400 p-1 rounded mx-1 font-mono">API_KEY</code>
-                            &nbsp;بشكل صحيح.
-                        </p>
-                    </div>
-                </div>
-            );
+        if (!isKeyChecked) {
+            return null; // Or a loading spinner
+        }
+
+        if (!apiKey) {
+            return <ApiKeyModal onApiKeySubmit={handleApiKeySubmit} />;
         }
 
         switch (activeSection) {
