@@ -4,43 +4,40 @@ import Section1 from './components/Section1';
 import Section2 from './components/Section2';
 import Section3 from './components/Section3';
 import Dashboard from './components/Dashboard';
-import ApiKeyModal from './components/ApiKeyModal';
-import { initializeGenAI, getApiKey } from './services/geminiClient';
+import { getGenAI } from './services/geminiClient';
 import Section4 from './components/Section4';
 
 export type SectionId = 'dashboard' | 'expert' | 'search' | 'troubleshoot' | 'locked';
 
 const App: React.FC = () => {
-    const [isKeyRequired, setIsKeyRequired] = useState(true);
+    const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
     const [activeSection, setActiveSection] = useState<SectionId>('dashboard');
 
     useEffect(() => {
-        const storedKey = getApiKey();
-        if (storedKey) {
-            try {
-                initializeGenAI(storedKey);
-                setIsKeyRequired(false);
-            } catch (error) {
-                console.error("Failed to initialize with stored API key:", error);
-                setIsKeyRequired(true);
-            }
-        } else {
-            setIsKeyRequired(true);
+        try {
+            // This will throw an error if process.env.API_KEY is not set.
+            getGenAI();
+            setIsApiKeyMissing(false);
+        } catch (error) {
+            console.error(error);
+            setIsApiKeyMissing(true);
         }
     }, []);
 
-    const handleApiKeySubmit = (key: string) => {
-        try {
-            initializeGenAI(key);
-            setIsKeyRequired(false);
-        } catch (error) {
-            console.error("Failed to initialize GenAI:", error);
-        }
-    };
-
     const renderContent = () => {
-        if (isKeyRequired) {
-            return <ApiKeyModal onApiKeySubmit={handleApiKeySubmit} />;
+        if (isApiKeyMissing) {
+            return (
+                 <div className="fixed inset-0 bg-gray-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-800 border border-red-500/50 rounded-lg shadow-2xl p-6 sm:p-8 max-w-md w-full text-center">
+                        <h2 className="text-xl sm:text-2xl font-bold text-red-400 mb-4">خطأ في الإعداد</h2>
+                        <p className="text-gray-400">
+                            مفتاح API غير موجود. يرجى التأكد من تكوين متغير البيئة 
+                            <code className="bg-gray-700 text-cyan-400 p-1 rounded mx-1 font-mono">API_KEY</code>
+                            &nbsp;بشكل صحيح.
+                        </p>
+                    </div>
+                </div>
+            );
         }
 
         switch (activeSection) {

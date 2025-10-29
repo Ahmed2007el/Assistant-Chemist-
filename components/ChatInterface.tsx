@@ -62,6 +62,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBack, title, subtitle, 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const stopSessionRef = useRef<() => void>();
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         try {
@@ -88,6 +89,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBack, title, subtitle, 
             setActiveConversationId(null);
         }
     }, [conversations, activeConversationId]);
+    
+    // Auto-growing textarea logic
+    useEffect(() => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+            textarea.style.height = 'auto'; // Reset height to recalculate
+            const scrollHeight = textarea.scrollHeight;
+            const maxHeight = 120; // From inline style maxHeight
+
+            if (scrollHeight > maxHeight) {
+                textarea.style.height = `${maxHeight}px`;
+                textarea.style.overflowY = 'auto';
+            } else {
+                textarea.style.height = `${scrollHeight}px`;
+                textarea.style.overflowY = 'hidden';
+            }
+        }
+    }, [textInput]);
+
 
     const activeConversation = conversations.find(c => c.id === activeConversationId);
     const chatHistory = activeConversation ? activeConversation.messages : [];
@@ -362,7 +382,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBack, title, subtitle, 
                     <p className="text-gray-400 text-sm sm:text-base">{subtitle}</p>
                 </div>
 
-                <div className="flex-grow bg-gray-900 rounded-lg p-4 overflow-y-auto mb-4 min-h-[200px]">
+                <div className="flex-grow bg-gray-900 rounded-lg p-4 overflow-y-auto mb-4 min-h-0">
                     {!activeConversationId && (
                         <div className="flex-1 flex items-center justify-center text-gray-500 h-full">
                            <p>ابدأ محادثة جديدة أو اختر واحدة من السجل.</p>
@@ -392,7 +412,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBack, title, subtitle, 
                                                             rel="noopener noreferrer"
                                                             className="flex items-center gap-3 bg-gray-600/50 p-2 rounded-lg hover:bg-gray-600 transition"
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-cyan-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                                                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                                                             </svg>
                                                             <span className="text-sm text-gray-300 line-clamp-2">{video.title}</span>
@@ -452,6 +472,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBack, title, subtitle, 
                             <CameraIcon />
                         </button>
                         <textarea
+                            ref={textareaRef}
                             value={textInput}
                             onChange={(e) => setTextInput(e.target.value)}
                             onKeyDown={(e) => {
